@@ -9,13 +9,14 @@ from typing import List
 class EmbeddingModel:
     def __init__(
         self,
-        embeddings_model_name: str = "text-embedding-3-small",
+        #embeddings_model_name: str = "text-embedding-3-small", #uses proxy model name for embeddings
+        embeddings_model_name: str = "cohere-embed-v4",
         batch_size: int = 1024,
     ):
         load_dotenv()
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        self.async_client = AsyncOpenAI()
-        self.client = OpenAI()
+        self.async_client = AsyncOpenAI(api_key=self.openai_api_key, base_url=os.getenv("LLM_API_BASE"))
+        self.client = OpenAI(api_key=self.openai_api_key, base_url=os.getenv("LLM_API_BASE"))
 
         if self.openai_api_key is None:
             raise ValueError(

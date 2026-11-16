@@ -6,7 +6,7 @@ load_dotenv()
 
 
 class ChatOpenAI:
-    def __init__(self, model_name: str = "gpt-4.1-mini"):
+    def __init__(self, model_name: str = os.getenv("LLM_MODEL")):  
         self.model_name = model_name
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         if self.openai_api_key is None:
@@ -16,7 +16,7 @@ class ChatOpenAI:
         if not isinstance(messages, list):
             raise ValueError("messages must be a list")
 
-        client = OpenAI()
+        client = OpenAI(api_key=self.openai_api_key, base_url=os.getenv("LLM_API_BASE"))
         response = client.chat.completions.create(
             model=self.model_name, messages=messages, **kwargs
         )

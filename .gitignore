@@ -154,3 +154,8 @@ workspace
 student_responses.txt
 *.txt.bak
 01_Life_As_An_AI_Engineer/check_openai_connection.py
+# Scratch test files
+test.py
+tests.py
+test.ipynb
+tests.ipynb

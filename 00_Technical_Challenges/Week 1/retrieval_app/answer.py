@@ -6,7 +6,7 @@ in the pipeline to change and often the most effective.
 
 from .index import Hit, client
 
-CHAT_MODEL = "gpt-4.1-mini"
+CHAT_MODEL = "claude-haiku-5-5"
 
 
 def build_messages(question: str, hits: list[Hit]) -> list[dict]:
@@ -31,7 +31,19 @@ def build_messages(question: str, hits: list[Hit]) -> list[dict]:
     Hint: Session 2's RAG_SYSTEM_TEMPLATE is a good starting point, and a
     better one once you have read Step 3's failures and edited it.
     """
-    raise NotImplementedError("Write build_messages() in retrieval_app/answer.py")
+    messages = [
+        {"role": "system", "content": "You are an assistant that answers questions based on the provided excerpts. "
+        "If the answer is not in the excerpts, say you don't know. Do not use your own knowledge to answer the question or provide any referrals. "
+        "Do not make up answers or hallucinate. If the excerpts are empty, say you don't know. "
+        "Each excerpt may start or end mid-sentence because the text was split into pieces; never say a section is missing or cut off. "
+        "You see excerpts, not the full document, so don't make claims beyond the excerpts. "
+        "Keep it short; do not describe excerpts that don't answer the question. "},
+        {"role": "user", "content": f"Context:\n{'\n\n'.join(f'[chunk {h.chunk_id}] {h.text}' for h in hits) if hits else '(no excerpts)'}\n\nQuestion: {question}"}
+    ]
+    return messages 
+ 
+
+    
 
 
 def answer(question: str, hits: list[Hit]) -> str:
@@ -41,4 +53,5 @@ def answer(question: str, hits: list[Hit]) -> str:
     then dig out `.choices[0].message.content`. Look up what `temperature`
     does to your results when you run the same question twice.
     """
-    raise NotImplementedError("Write answer() in retrieval_app/answer.py")
+    response = client().chat.completions.create(model=CHAT_MODEL, messages=build_messages(question, hits), temperature=1.0) #Haiku model does not support tempeorature
+    return response.choices[0].message.content
