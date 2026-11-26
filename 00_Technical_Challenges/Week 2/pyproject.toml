@@ -20,6 +20,7 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.7.0",
     "python-dotenv>=1.2.4",
+    "langchain-core>=1.8.4",
 ]
 
 # Add a dependency with:  uv add <package>

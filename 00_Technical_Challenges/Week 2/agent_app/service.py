@@ -13,9 +13,11 @@ from langchain_core.runnables import Runnable
 from .graph import build_agent_graph
 from .index import build_retriever
 from .schemas import AskRequest, AskResponse, Source, TraceStep
-from .tools import build_web_search_tool, make_search_tool
+from .tools import build_web_search_tool, make_search_tool, WELLNESS_SEARCH_TOOL_NAME
+import re
 
 
+#below build_agent composes the three stubs into one ready agent. Called ONCE at startup by api.py.
 def build_agent(corpus_path: Path, k: int = 3) -> Runnable:
     """Compose the three stubs into one ready agent. Called ONCE at startup by api.py.
 
@@ -28,14 +30,14 @@ def build_agent(corpus_path: Path, k: int = 3) -> Runnable:
     the tool list, so the agent can reach the live web the moment you add a key — and the graph
     needs no change, because `build_agent_graph` takes the whole list.
     """
-    retriever = build_retriever(corpus_path, k=k)
-    search_tool = make_search_tool(retriever)
+    retriever = build_retriever(corpus_path, k=k) #retriever is a BaseRetriever object that is built from the corpus_path and k value. It is used to retrieve relevant documents from the indexed corpus.
+    search_tool = make_search_tool(retriever) #search tool uses the retriever
     tools = [search_tool]
     web_search = build_web_search_tool()  # None unless TAVILY_API_KEY is set
     if web_search is not None:
         tools.append(web_search)
     return build_agent_graph(tools)
-
+ #by the end search tool and web search are added
 
 def answer_question(request: AskRequest, agent: Runnable) -> AskResponse:
     """Run the agent for one question and build the AskResponse.
@@ -69,8 +71,52 @@ def answer_question(request: AskRequest, agent: Runnable) -> AskResponse:
     too — but they don't match `SOURCE_LINE`, so a parser that keys off that prefix naturally
     skips them. That's correct: `sources` cite the guide; the web step is visible in `trace`.
 
+    ROLE
     Hint: message role is `getattr(msg, "type", None)` -> "human" | "ai" | "tool". Tool calls
     live on `getattr(msg, "tool_calls", None)`. A ToolMessage carries `.name` and `.content`.
     Keep this function pure data-shaping — no model or retriever calls happen here.
     """
-    raise NotImplementedError("Write answer_question() in agent_app/service.py")
+    
+    result = agent.invoke({"messages": [HumanMessage(content=request.question)]})
+    messages = result["messages"]
+
+    sources: list[Source] =[]
+    traces: list[TraceStep] = []
+    used_retrieval = False
+
+    for msg in result["messages"]:
+        role=getattr(msg, "type", None) #type here is whether it's human, ai, tool
+        tool_calls = getattr(msg, "tool_calls", None)
+
+        if role == "ai" and tool_calls:
+            calls_summary = ", ".join(f"{tc['name']}({tc.get('args', {})})" for tc in tool_calls)
+            traces.append(TraceStep(node="agent", detail=calls_summary))
+
+        elif role == "tool":
+            tool_name = getattr(msg, "name", "")
+            content = str(msg.content)
+            traces.append(TraceStep(node="tools", detail=content[:160]))
+
+            if tool_name == WELLNESS_SEARCH_TOOL_NAME:
+                used_retrieval = True
+                pattern = r"\[source chunk_id=(\d+) score=(-?\d+(?:\.\d+)?)\]"
+                matches = list(re.finditer(pattern, content)) #split text into an iterator
+                for i, match in enumerate(matches):
+                    chunk_id = int(match.group(1))
+                    score = float(match.group(2))
+                    next_start = matches[i+1].start() if i+1 < len(matches) else len(content)
+                    preview = content[match.end(): next_start].strip()[:160]                   
+                    sources.append(Source(chunk_id=chunk_id, score=score, preview=preview)) 
+                        
+
+
+    answer = str(messages[-1].content) if messages else ""
+
+    return AskResponse(
+        answer=answer,
+        used_retrieval=used_retrieval,
+        sources=sources,
+        trace=traces
+    )
+
+

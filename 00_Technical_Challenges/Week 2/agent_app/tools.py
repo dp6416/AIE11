@@ -10,8 +10,9 @@ there the tool returned a loose string. Here the output format matters, because
 
 import os
 
-from langchain_core.retrievers import BaseRetriever
+from langchain_core.retrievers import BaseRetriever 
 from langchain_core.tools import BaseTool, tool
+from langchain_core.vectorstores import VectorStoreRetriever
 
 # The per-source line format the tool must emit, and the service must parse. Keep them in
 # sync — this one constant is the contract between the tool and the API response.
@@ -45,7 +46,9 @@ def build_web_search_tool() -> BaseTool | None:
     return TavilySearch(max_results=3)
 
 
-def make_search_tool(retriever: BaseRetriever) -> BaseTool:
+def make_search_tool(retriever: VectorStoreRetriever) -> BaseTool:
+
+
     """Build the `search_wellness_knowledge` tool, closed over a ready retriever.
 
     Args:
@@ -73,4 +76,26 @@ def make_search_tool(retriever: BaseRetriever) -> BaseTool:
     Hint: define an inner `@tool`-decorated function and `return` it. The decorator turns a
     function into a tool; closing over `retriever` is what lets the tool reach your index.
     """
-    raise NotImplementedError("Write make_search_tool() in agent_app/tools.py")
+
+    #below is the implementation of the make_search_tool function. It defines an inner function called search_wellness_knowledge that takes a query string as input.
+    # This inner function uses the provided retriever to invoke a search with the query. If no results are found, it returns a message indicating that nothing was found.
+    # If results are found, it formats each result according to the specified SOURCE_LINE format, including the chunk_id and score (which is set to 0.0 as a placeholder). Finally, it joins all formatted results into a single string and returns it.
+    #results = retriever.invoke(query) - we used this when we had the Base Retreiever
+
+    @tool
+    def search_wellness_knowledge(query:str):
+        """
+        This tool function searches the local wellness guide for health, fitness, and lifestyle information. 
+        """
+        pairs = retriever.vectorstore.similarity_search_with_score(
+        query, k=retriever.search_kwargs["k"]
+    )
+        results =[]
+        if not pairs:
+            return "nothing found from the wellness knowledge base."
+        for (doc, score) in pairs:
+            header = SOURCE_LINE.format(chunk_id=doc.metadata["chunk_id"], score=score) #list
+            results.append(f"{header}\n{doc.page_content}") 
+        return "\n\n".join(results)
+
+    return search_wellness_knowledge

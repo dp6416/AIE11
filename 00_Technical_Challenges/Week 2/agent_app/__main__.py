@@ -13,7 +13,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
+#can use these arguments to run the server with uvicorn
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="agent_app", description=__doc__)
     parser.add_argument("--host", default="127.0.0.1", help="interface to bind (default: 127.0.0.1)")

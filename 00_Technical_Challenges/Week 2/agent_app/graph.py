@@ -43,8 +43,16 @@ def should_continue(state: AgentState) -> Literal["tools", "end"]:
     This function is the decision `create_agent` made for you in Session 3. Look at the last
     message in `state["messages"]` and check its `.tool_calls`.
     """
-    raise NotImplementedError("Write should_continue() in agent_app/graph.py")
+    last_message = state["messages"][-1] #get the last message from the state
+    if getattr(last_message, "tool_calls", None): #check if the last message has tool calls
+        return "tools" #if it does, return "tools" 
+    else:
+        return "end"   
 
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import BaseMessage, SystemMessage
+import os
+from langgraph.prebuilt import ToolNode
 
 def build_agent_graph(tools: list[BaseTool]) -> Runnable:
     """Wire the ReAct loop and compile it.
@@ -75,4 +83,44 @@ def build_agent_graph(tools: list[BaseTool]) -> Runnable:
     Guardrail worth knowing: a compiled graph takes a `recursion_limit` at invoke time, so a
     confused loop stops instead of running forever. Bounding it cleanly is a Step 4 option.
     """
-    raise NotImplementedError("Write build_agent_graph() in agent_app/graph.py")
+
+    llm = ChatOpenAI(
+        model=CHAT_MODEL,
+        temperature=1,
+        api_key=os.environ.get("OPENAI_API_KEY"),
+        base_url=os.environ.get("LLM_API_BASE"),
+        )
+    llm_with_tools = llm.bind_tools(tools)
+    #print("Model bound to tools:", [t.name for t in tools])
+
+    
+
+    def agent_node(state: AgentState):
+        """ Call the model with the running conversation; return its reply """
+        messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
+        response = llm_with_tools.invoke(messages)
+        return {"messages": [response]}
+
+#print("agent_node defined")
+
+    
+
+    
+    from langgraph.graph import StateGraph, START, END
+    
+    tool_node = ToolNode(tools)
+
+    workflow = StateGraph(AgentState)
+    workflow.add_node("agent", agent_node)
+    workflow.add_node("tools", tool_node)
+    workflow.add_edge(START, "agent")
+    workflow.add_conditional_edges(
+        "agent", 
+        should_continue, 
+        {"tools":"tools", "end":END}
+    )
+
+    workflow.add_edge("tools", "agent")
+
+    return workflow.compile()
+    

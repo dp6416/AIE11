@@ -23,7 +23,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from . import service
+from . import service #service is imported here because it contains the build_agent and answer_question functions that are used in the API endpoints.
 from .schemas import AskRequest, AskResponse
 
 APP_DIR = Path(__file__).resolve().parent
@@ -42,12 +42,12 @@ async def lifespan(app: FastAPI):
     """Build the agent once, before the first request. Store it (or the reason it failed)."""
     app.state.agent = None
     app.state.startup_error = None
-    corpus = find_corpus()
+    corpus = find_corpus() #find corpus looks for the text file in the data directory. If it finds exactly one .txt file, it returns its path; otherwise, it returns None.
     if corpus is None:
         app.state.startup_error = f"Expected exactly one .txt in {DATA_DIR}/."
     else:
         try:
-            app.state.agent = service.build_agent(corpus)
+            app.state.agent = service.build_agent(corpus) #here we build the agent 
             print(f"[agent_app] agent ready — indexed {corpus.name}", file=sys.stderr)
         except NotImplementedError as exc:
             # A stub is still unwritten. Come up anyway so /health and /docs work.
