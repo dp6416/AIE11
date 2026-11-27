@@ -33,6 +33,10 @@ class AgentState(TypedDict):
     """The agent's whole memory: a list of messages, appended to as it loops."""
 
     messages: Annotated[list[BaseMessage], add_messages]
+    web_calls: int
+
+MISS_THRESHOLD = 0.45
+MAX_WEB_CALLS = 1
 
 
 def should_continue(state: AgentState) -> Literal["tools", "end"]:
@@ -61,8 +65,22 @@ def top_guide_score(state: AgentState) -> float | None:
                 scores.append(float(match.group(2)))
     return max(scores) if scores else None
 
+def route_after_tools(state: AgentState) -> Literal["web", "agent"]:
+    score = top_guide_score(state)
+    if score is None:
+        return "agent"
+    if score < MISS_THRESHOLD and state.get("web_calls", 0) < MAX_WEB_CALLS:
+        return "web"
+    return "agent"
+
+def web_node(state: AgentState):
+    question = next(m.content for m in state["messages"] if isinstance(m, HumanMessage))
+    call = {"name": "tavily_search", "args": {"query": question}, "id": "web_fallback"}
+    note = AIMessage(content="", tool_calls=[call])
+    return {"messages": [note], "web_calls": state.get("web_calls", 0) + 1}
+
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 import os
 from langgraph.prebuilt import ToolNode
 
