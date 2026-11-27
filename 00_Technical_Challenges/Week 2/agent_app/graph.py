@@ -80,7 +80,7 @@ def web_node(state: AgentState):
     return {"messages": [note], "web_calls": state.get("web_calls", 0) + 1}
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 import os
 from langgraph.prebuilt import ToolNode
 
@@ -149,6 +149,7 @@ def build_agent_graph(tools: list[BaseTool]) -> Runnable:
     workflow = StateGraph(AgentState)
     workflow.add_node("agent", agent_node)
     workflow.add_node("tools", tool_node)
+    workflow.add_node("web", web_node)
     workflow.add_edge(START, "agent")
     workflow.add_conditional_edges(
         "agent", 
@@ -156,7 +157,8 @@ def build_agent_graph(tools: list[BaseTool]) -> Runnable:
         {"tools":"tools", "end":END}
     )
 
-    workflow.add_edge("tools", "agent")
+    workflow.add_conditional_edges("tools", route_after_tools, {"web": "web", "agent": "agent"})
+    workflow.add_edge("web", "tools")
 
     return workflow.compile()
     
