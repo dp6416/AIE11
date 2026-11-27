@@ -86,7 +86,7 @@ def build_agent_graph(tools: list[BaseTool]) -> Runnable:
 
     llm = ChatOpenAI(
         model=CHAT_MODEL,
-        temperature=1,
+        #temperature=1,
         api_key=os.environ.get("OPENAI_API_KEY"),
         base_url=os.environ.get("LLM_API_BASE"),
         )

@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "question": "What breathing techniques are recommended for stress relief?",
+    "expected": "Needs 2 chunks",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 2,
+    "question": "What is essential for good immune function?",
+    "expected": "Needs 2 chunks",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 3,
+    "question": "Are playing computer games good for my health?",
+    "expected": "Decline",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 4,
+    "question": "How many chin tucks are recommended and for how long?",
+    "expected": "Should retrieve",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 5,
+    "question": "What was the average stock price of Nvidia in June 2026?",
+    "expected": "Decline",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 6,
+    "question": "Does creatine help deliver a better performance?",
+    "expected": "Decline",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 7,
+    "question": "Do you recommend fasting or intermittent fasting?",
+    "expected": "Near Miss/Decline",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 8,
+    "question": "How do you achieve muscle hypertrophy?",
+    "expected": "Should retrieve",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 9,
+    "question": "How much caffeine should I have daily?",
+    "expected": "Citations Integrity",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  },
+  {
+    "id": 10,
+    "question": "What is the daily recommended amount of sleep?",
+    "expected": "Citations Integrity",
+    "error": "500 Server Error: Internal Server Error for url: http://localhost:8000/ask"
+  }
+]

@@ -85,7 +85,7 @@ def build_retriever(corpus_path: Path, k: int = 3) -> VectorStoreRetriever:
 
     embedding_model = OpenAIEmbeddings(model=os.environ["EMBEDDING_MODEL"],api_key=os.environ["OPENAI_API_KEY"],
         base_url=os.environ["LLM_API_BASE"])
-    embedding_dim = len(embedding_model.embed_query("test"))
+    
 
 # On-disk Qdrant: vectors persist to memory-mapped files, so they survive a kernel
 # restart. Embed once; later runs load from disk instead of paying to re-embed.
@@ -104,10 +104,13 @@ def build_retriever(corpus_path: Path, k: int = 3) -> VectorStoreRetriever:
 #below code checks if the specified collection exists in the Qdrant client. 
 # If it does not exist, it creates a new collection with the specified name and vector configuration (size and distance metric). This ensures that the collection is only created if it doesn't already exist, preventing errors from attempting to create a collection that already exists.
     if not qdrant_client.collection_exists(collection_name):
+      embedding_dim = len(embedding_model.embed_query("test"))
       qdrant_client.create_collection(
         collection_name=collection_name,
-        vectors_config=VectorParams(size=embedding_dim, distance=Distance.COSINE),  
+        vectors_config=VectorParams(size=embedding_dim, distance=Distance.COSINE),
   )
+    else:
+      embedding_dim = qdrant_client.get_collection(collection_name).config.params.vectors.size
 
   #below code creates a QdrantVectorStore INSTANCE using the Qdrant client,
   # collection name, and embedding function. It then checks if the collection is empty (i.e., has no documents). 
