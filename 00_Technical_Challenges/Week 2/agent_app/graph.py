@@ -6,7 +6,7 @@ This is the Session 4 notebook, Task 2 and Task 5 — the ReAct loop as an expli
 `AgentState`, the system prompt, and the model name are given. The two things you write are
 the router (the one real decision in any agent) and the graph that wires it together.
 """
-
+import re
 from typing import Annotated, Literal, TypedDict
 
 from langchain_core.messages import BaseMessage
@@ -15,6 +15,7 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.message import add_messages
 
 from .index import CHAT_MODEL
+from .tools import WELLNESS_SEARCH_TOOL_NAME
 
 SYSTEM_PROMPT = (
     "You are a supportive wellness assistant with a health & wellness knowledge base.\n"
@@ -49,10 +50,27 @@ def should_continue(state: AgentState) -> Literal["tools", "end"]:
     else:
         return "end"   
 
+def top_guide_score(state: AgentState) -> float | None:
+    pattern = r"\[source chunk_id=(\d+) score=(-?\d+(?:\.\d+)?)\]"
+    scores = []
+    for msg in reversed(state["messages"]):
+        if not isinstance(msg, ToolMessage):
+            break    
+        if msg.name == WELLNESS_SEARCH_TOOL_NAME:
+            for match in re.finditer(pattern, str(msg.content)):
+                scores.append(float(match.group(2)))
+    return max(scores) if scores else None
+
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 import os
 from langgraph.prebuilt import ToolNode
+
+
+
+
+
+
 
 def build_agent_graph(tools: list[BaseTool]) -> Runnable:
     """Wire the ReAct loop and compile it.
